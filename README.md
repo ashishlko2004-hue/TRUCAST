@@ -33,9 +33,4 @@ This module handles the core user journey for TRUCAST Solutions, ensuring a secu
     - **Feedback Loops:** Shake animations and Haptic feedback on errors.
 - **Interactive Recovery:** Premium "Forgot Password" flow with pulsing animations and smart dialogs.
 
-## 🛠 Tech Stack
-- **Language:** Kotlin
-- **Toolkit:** Jetpack Compose (1.7.5+)
-- **UI Architecture:** Material 3 Design
-- **Navigation:** Compose Navigation Components
-- **Animations:** Compose Animatable & Infinite Transitions
+
