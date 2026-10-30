@@ -34,3 +34,7 @@ output-metadata.json
 
 # Android Profiling
 *.hprof
+
+# Google Services / Firebase Config
+google-services*.json
+app/google-services*.json
