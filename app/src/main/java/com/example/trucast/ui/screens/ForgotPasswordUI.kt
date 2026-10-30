@@ -23,14 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,7 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.trucast.R
-import kotlinx.coroutines.delay
+import com.example.trucast.ui.navigation.PasswordResetState
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @Composable
@@ -53,19 +52,18 @@ fun ForgotPasswordUI(
     var email by remember { mutableStateOf("") }
     var showErrors by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    var emailTouched by remember { mutableStateOf(false) }
-    
+
     val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    
+
     val shakeOffset = remember { Animatable(0f) }
     val buttonScale = remember { Animatable(1f) }
     val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
 
-    val handleSendCode = {
+    val handleSendCode: () -> Unit = {
         scope.launch {
             // Button Animation
             buttonScale.animateTo(0.95f, animationSpec = spring())
@@ -92,9 +90,82 @@ fun ForgotPasswordUI(
             } else {
                 isLoading = true
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                delay(1200) // Premium feel loading
-                isLoading = false
-                onSendCodeClick()
+                val auth = FirebaseAuth.getInstance()
+                auth.sendPasswordResetEmail(email.trim())
+                    .addOnCompleteListener { _ ->
+                        isLoading = false
+                        PasswordResetState.email = email.trim()
+                        showSuccessDialog = true
+                    }
+            }
+        }
+    }
+
+    if (showSuccessDialog) {
+        Dialog(
+            onDismissRequest = { showSuccessDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.85f).wrapContentHeight(),
+                shape = RoundedCornerShape(28.dp),
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(brush = Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF002B36))))
+                        .border(BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color(0xFF00BCD4), Color.Transparent))), RoundedCornerShape(28.dp))
+                        .padding(26.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                        val scale by infiniteTransition.animateFloat(
+                            initialValue = 1f, targetValue = 1.15f,
+                            animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "scale"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .graphicsLayer { scaleX = scale; scaleY = scale }
+                                .background(Color(0xFF00BCD4).copy(alpha = 0.15f), CircleShape)
+                                .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF00BCD4), modifier = Modifier.size(32.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "Email Sent Successfully",
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Password reset email has been sent to ${email.trim()}.\n\nPlease check your Inbox (and Spam folder) and follow the link to reset your password.",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+                        Spacer(modifier = Modifier.height(30.dp))
+                        Button(
+                            onClick = {
+                                showSuccessDialog = false
+                                onSendCodeClick()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            shape = RoundedCornerShape(27.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp)
+                        ) {
+                            Text("CONTINUE", color = Color.White, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                        }
+                    }
+                }
             }
         }
     }
@@ -134,7 +205,7 @@ fun ForgotPasswordUI(
                         Text(text = "Action Required", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (email.isEmpty()) "Please provide your email address to receive the reset code." else "The email format is invalid. Please verify and try again.",
+                            text = if (email.isEmpty()) "Please provide your email address to receive the reset Password link." else "The email format is invalid. Please verify and try again.",
                             color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 22.sp
                         )
                         Spacer(modifier = Modifier.height(30.dp))
@@ -192,123 +263,92 @@ fun ForgotPasswordUI(
             Text(text = "SOLUTIONS", color = Color(0xFF00BCD4), fontWeight = FontWeight.Bold, letterSpacing = 4.sp, fontSize = 14.sp, modifier = Modifier.offset(y = brandingoffset))
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(text = "Forgot password", color = Color.Cyan, fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "Enter email address to receive\nverification code",
-                color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 20.sp, modifier = Modifier.fillMaxWidth()
-            )
 
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Premium Field with interaction-based Red Border
-            PremiumInputField(
-                value = email,
-                onValueChange = { email = it; if (showErrors) showErrors = false },
-                placeholder = "Email Address",
-                icon = Icons.Default.Email,
-                isValid = isEmailValid,
-                showError = (showErrors || (emailTouched && email.isNotEmpty())) && !isEmailValid,
-                onFocusLost = { emailTouched = true },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); handleSendCode() })
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Action Button
-            Button(
-                onClick = { handleSendCode() },
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(58.dp).scale(buttonScale.value),
-                shape = RoundedCornerShape(29.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00BCD4),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color(0xFF00BCD4).copy(alpha = 0.5f)
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                color = Color.Black.copy(alpha = 0.45f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
-                } else {
-                    Text(text = "SEND CODE", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp)
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Please Enter Your email address",
+                        color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 20.sp, modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            if (showErrors) showErrors = false
+                        },
+                        placeholder = { Text("Enter your email", color = Color.White.copy(alpha = 0.5f)) },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = if (showErrors && !isEmailValid) Color.Red else Color(0xFF00BCD4)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        isError = showErrors && !isEmailValid,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF00BCD4),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                            errorBorderColor = Color.Red,
+                            cursorColor = Color(0xFF00BCD4),
+                            focusedContainerColor = Color.Black.copy(alpha = 0.3f),
+                            unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { handleSendCode() })
+                    )
+
+                    if (showErrors && !isEmailValid) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Please enter a valid email address",
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    Button(
+                        onClick = handleSendCode,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .scale(buttonScale.value),
+                        shape = RoundedCornerShape(27.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
+                        } else {
+                            Text(text = "SEND MAIL", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp)
+                        }
+                    }
                 }
             }
-            
             Spacer(modifier = Modifier.height(30.dp))
-        }
-    }
-}
-
-@Composable
-fun PremiumInputField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    icon: ImageVector,
-    isValid: Boolean,
-    showError: Boolean,
-    onFocusLost: () -> Unit,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default
-) {
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            showError -> Color(0xFFFF5252) // Vibrant Red for wrong entry
-            isValid && value.isNotEmpty() -> Color(0xFF4CAF50) // Green for Success
-            else -> Color.White.copy(alpha = 0.4f)
-        },
-        animationSpec = tween(400)
-    )
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
-                .onFocusChanged { if (!it.isFocused) onFocusLost() },
-            placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.5f)) },
-            leadingIcon = { 
-                Icon(
-                    icon, null, 
-                    tint = if (showError) Color(0xFFFF5252) else if (isValid && value.isNotEmpty()) Color(0xFF4CAF50) else Color.White 
-                ) 
-            },
-            trailingIcon = {
-                if (isValid && value.isNotEmpty() && !showError) {
-                    Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
-                }
-            },
-            isError = showError,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            shape = RoundedCornerShape(16.dp),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = borderColor,
-                unfocusedBorderColor = borderColor.copy(alpha = 0.6f),
-                errorBorderColor = Color(0xFFFF5252),
-                cursorColor = Color(0xFF00BCD4)
-            )
-        )
-
-        AnimatedVisibility(
-            visible = showError,
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Text(
-                text = if (value.isEmpty()) "Email is required" else "Invalid email format",
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 12.dp, top = 4.dp)
-            )
         }
     }
 }

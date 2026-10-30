@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "87800678370",
+    "project_id": "trucast-2edd3",
+    "storage_bucket": "trucast-2edd3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87800678370:android:3de5fd87edc6dbfedc9bbb",
+        "android_client_info": {
+          "package_name": "com.example.trucast"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtdcB4IoWUPCYlvSRL6FZX45bA_Zzmw6g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

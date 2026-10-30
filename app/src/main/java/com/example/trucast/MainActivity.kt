@@ -10,14 +10,16 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.trucast.ui.navigation.AppNavHost
 import com.example.trucast.ui.theme.TRUCASTTheme
+import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Manual Initialization for Firebase
+        FirebaseApp.initializeApp(this)
         enableEdgeToEdge()
         setContent {
             TRUCASTTheme {
-                // Initialize Navigation Controller here
                 val navController = rememberNavController()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppNavHost(
@@ -27,6 +29,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
     }
+
 }

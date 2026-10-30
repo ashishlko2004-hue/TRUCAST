@@ -1,5 +1,6 @@
 package com.example.trucast.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -7,40 +8,27 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.trucast.ui.screens.BackToHome
-import com.example.trucast.ui.screens.ChannelPlayerUI
-import com.example.trucast.ui.screens.ChannelsUI
-import com.example.trucast.ui.screens.CreateNewPasswordUI
-import com.example.trucast.ui.screens.EditProfile
-import com.example.trucast.ui.screens.ForgotPasswordUI
-import com.example.trucast.ui.screens.LoginPageUI
-import com.example.trucast.ui.screens.MainScreenUI
-import com.example.trucast.ui.screens.PasswordCongratulationsUI
-import com.example.trucast.ui.screens.RequestSongList
-import com.example.trucast.ui.screens.RequestSongUI
-import com.example.trucast.ui.screens.ResetPassword
-import com.example.trucast.ui.screens.SettingUI
-import com.example.trucast.ui.screens.SignUp
-import com.example.trucast.ui.screens.SplashScreenUI
-import com.example.trucast.ui.screens.VerifyPasswordUI
+import com.example.trucast.ui.screens.*
 
 object Routes {
     const val SPLASH = "splash"
     const val HOME = "home"
     const val LOGIN = "login"
-    const val FORGOT_PASSWORD = "Forgot Password"
-    const val VERIFY_PASSWORD = "verify_password"
-    const val CREATE_NEW_PASSWORD = "create_new_password"
+    const val FORGOT_PASSWORD = "forgot_password"
     const val PASSWORD_CONGRATULATIONS = "password_congratulations"
     const val SIGNUP = "sign_up"
-    const val RESET_PASSWORD = "reset_password"
-    const val BACK_TO_HOME = "back_to_home"
     const val EDIT_PROFILE = "edit_profile"
-    const val SETTING  ="Setting"
+    const val SETTING = "setting"
     const val CHANNELS = "channels"
     const val CHANNEL_PLAYER = "channel_player"
     const val REQUEST_SONG = "request_song"
     const val REQUEST_SONG_LIST = "request_song_list"
+}
+
+object PasswordResetState {
+    var email: String = ""
+    var otpCode: String = "1234"
+    var resetCode: String = ""
 }
 
 @Composable
@@ -53,76 +41,59 @@ fun AppNavHost(
         startDestination = Routes.SPLASH,
         modifier = modifier
     ) {
+        // 1. Splash Screen - Handle Auto-Login
         composable(Routes.SPLASH) {
-            SplashScreenUI(onTimeout = {
-                navController.navigate(Routes.HOME) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
+            SplashScreenUI(onTimeout = { isLoggedIn ->
+                if (isLoggedIn) {
+                    navController.navigate(Routes.CHANNELS) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
                 }
             })
         }
-
+        // 2. Welcome Landing
         composable(Routes.HOME) {
             MainScreenUI(onGetStartedClick = {
                 navController.navigate(Routes.LOGIN)
             })
         }
-
+        // 3. Authentication
         composable(Routes.LOGIN) {
             LoginPageUI(
-                onForgotPasswordClick = {
-                    navController.navigate(Routes.FORGOT_PASSWORD)
-                },
-                onSignUpClick = {
-                    navController.navigate(Routes.SIGNUP)
-                },
-                onBackClick = {
-                    navController.popBackStack()
-                },
+                onForgotPasswordClick = { navController.navigate(Routes.FORGOT_PASSWORD) },
+                onSignUpClick = { navController.navigate(Routes.SIGNUP) },
+                onBackClick = { navController.popBackStack() },
                 onLoginClick = {
-                    navController.navigate(Routes.CHANNELS)
+                    navController.navigate(Routes.CHANNELS) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
                 }
             )
         }
 
         composable(Routes.SIGNUP) {
             SignUp(
-                onBackToLogin = {
-                    navController.popBackStack()
-                },
+                onBackToLogin = { navController.popBackStack() },
                 onSignUpSuccess = {
-                    navController.navigate(Routes.RESET_PASSWORD)
+                    navController.navigate(Routes.CHANNELS) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
                 }
             )
         }
 
+        // 4. Password Recovery Flow
         composable(Routes.FORGOT_PASSWORD) {
             ForgotPasswordUI(
                 onBackToLogin = { navController.popBackStack() },
-                onSendCodeClick = {
-                    navController.navigate(Routes.VERIFY_PASSWORD)
-                }
+                onSendCodeClick = { navController.navigate(Routes.PASSWORD_CONGRATULATIONS) }
             )
         }
 
-        composable(Routes.VERIFY_PASSWORD) {
-            VerifyPasswordUI(
-                onBackToLogin = { navController.popBackStack() },
-                onVerifyClick = {
-                    navController.navigate(Routes.CREATE_NEW_PASSWORD)
-                },
-                onResendCode = {
-                    println ("Resend code callback triggered inside AppNavHost")
-                }
-            )
-        }
-        composable(Routes.CREATE_NEW_PASSWORD) {
-            CreateNewPasswordUI(
-                onBackToLogin = { navController.popBackStack() },
-                onSubmit = { _, _ ->
-                    navController.navigate(Routes.PASSWORD_CONGRATULATIONS)
-                }
-            )
-        }
         composable(Routes.PASSWORD_CONGRATULATIONS) {
             PasswordCongratulationsUI(
                 onContinueClick = {
@@ -133,61 +104,18 @@ fun AppNavHost(
             )
         }
 
-        composable(Routes.RESET_PASSWORD) {
-            ResetPassword(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onUpdateSuccess = {
-                    navController.navigate(Routes.BACK_TO_HOME) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(Routes.BACK_TO_HOME) {
-            BackToHome(
-                onBackToHome = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.BACK_TO_HOME) { inclusive = true }
-                    }
-                },
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
+        // 5. Main Content (Music Hub)
         composable(Routes.CHANNELS) {
             ChannelsUI(
-                onSettingsClick = {
-                    navController.navigate(Routes.EDIT_PROFILE)
-                },
+                onSettingsClick = { navController.navigate(Routes.SETTING) },
+                onProfileEditClick = { navController.navigate(Routes.EDIT_PROFILE) },
                 onChannelClick = { channel ->
-                    navController.navigate("${Routes.CHANNEL_PLAYER}/${channel.name}")
+                    val encodedName = Uri.encode(channel.name)
+                    navController.navigate("${Routes.CHANNEL_PLAYER}/$encodedName")
                 }
             )
         }
 
-        composable(Routes.EDIT_PROFILE) {
-            EditProfile(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onSettingsClick = {
-                    navController.navigate( Routes.SETTING)
-                }
-            )
-        }
-        composable(Routes.SETTING){
-
-            SettingUI(
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
-        }
         composable(
             route = "${Routes.CHANNEL_PLAYER}/{channelName}",
             arguments = listOf(navArgument("channelName") { type = NavType.StringType })
@@ -195,31 +123,33 @@ fun AppNavHost(
             val channelName = backStackEntry.arguments?.getString("channelName") ?: "Channel"
             ChannelPlayerUI(
                 channelName = channelName,
-                userName = "User Name",
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onRequestSongClick = {
-                    navController.navigate(Routes.REQUEST_SONG)
-                }
+                userName = "Music Lover",
+                onBackClick = { navController.popBackStack() },
+                onRequestSongClick = { navController.navigate(Routes.REQUEST_SONG) }
             )
         }
+
+
+        composable(Routes.EDIT_PROFILE) {
+            EditProfile(
+                onBackClick = { navController.popBackStack() },
+                onSettingsClick = { navController.navigate(Routes.SETTING) }
+            )
+        }
+
+        composable(Routes.SETTING) {
+            SettingUI(onBackClick = { navController.popBackStack() })
+        }
+
         composable(Routes.REQUEST_SONG) {
             RequestSongUI(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onSubmitRequest = { _, _ ->
-                    navController.navigate(Routes.REQUEST_SONG_LIST)
-                }
+                onBackClick = { navController.popBackStack() },
+                onSubmitRequest = { _, _ -> navController.navigate(Routes.REQUEST_SONG_LIST) }
             )
         }
+
         composable(Routes.REQUEST_SONG_LIST) {
-            RequestSongList(
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
+            RequestSongList(onBackClick = { navController.popBackStack() })
         }
     }
 }

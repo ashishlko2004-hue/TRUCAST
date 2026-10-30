@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -40,7 +41,10 @@ android {
 }
 
 dependencies {
-    implementation ("io.coil-kt:coil-compose:2.7.0")
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation("io.coil-kt:coil-compose:2.7.0")
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material.icons.core)
     implementation("androidx.navigation:navigation-compose:2.8.3")
@@ -60,6 +64,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.text)
     implementation(libs.androidx.foundation)
+    implementation(libs.firebase.database)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -67,20 +72,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-}
-
-tasks.register("fixResourceName") {
-    doLast {
-        val oldFile = file("src/main/res/drawable/new.png")
-        val newFile = file("src/main/res/drawable/new_img.png")
-        if (oldFile.exists()) {
-            if (oldFile.renameTo(newFile)) {
-                println("Successfully renamed new.png to new_img.png")
-            } else {
-                println("Failed to rename new.png")
-            }
-        } else {
-            println("new.png does not exist or already renamed")
-        }
-    }
 }
