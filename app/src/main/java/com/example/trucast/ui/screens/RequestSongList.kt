@@ -1,5 +1,6 @@
 package com.example.trucast.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,41 +23,19 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trucast.R
 
-data class RequestedSong(
-    val id: Int,
-    val channelName: String,
-    val songName: String,
-    val channelImage: Int,
-    val channelColor: Color
-)
-
 @Composable
 fun RequestSongList(
-    userName: String = "Name",
+    userName: String = "Music Lover",
     onBackClick: () -> Unit = { }
 ) {
     val cyanColor = Color(0xFF00BCD4)
-
-    val requestedSongs = listOf(
-        RequestedSong(1, "Channel 1", "Requested Song Name 1", R.drawable.maskgroup, Color(0xFF8BC34A)),
-        RequestedSong(2, "Channel 2", "Requested Song Name 2", R.drawable.indie, Color(0xFFE91E63)),
-        RequestedSong(3, "Channel 3", "Requested Song Name 3", R.drawable.rnb, Color(0xFF3F51B5)),
-        RequestedSong(4, "Channel 4", "Requested Song Name 4", R.drawable.pop, Color(0xFFE67E22)),
-        RequestedSong(5, "Channel 5", "Requested Song Name 5", R.drawable.u, Color(0xFF29B6F6)),
-        RequestedSong(6, "Channel 6", "Requested Song Name 6", R.drawable.new_img, Color(0xFF9C27B0)),
-        RequestedSong(7, "Channel 9", "Requested Song Name 7", R.drawable.bol, Color(0xFF5D4037)),
-        RequestedSong(8, "Channel 8", "Requested Song Name 8", R.drawable.pods, Color(0xFF283593)),
-        RequestedSong(9, "channel 10", "Requested Song Name 9", R.drawable.indie1, Color(0xFF5D4037)),
-        RequestedSong(10, "Channel 11", "Requested Song Name 10", R.drawable.charts, Color(0xFF00695C))
-    )
+    val requestedSongs = SongRequestManager.requests
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background Image
         Image(
             painter = painterResource(id = R.drawable.loginpage),
             modifier = Modifier.fillMaxSize(),
@@ -64,7 +43,6 @@ fun RequestSongList(
             contentScale = ContentScale.Crop
         )
 
-        // Standardized Back Arrow Button - Aligned far left (0.dp) to match other screens
         IconButton(
             onClick = onBackClick,
             modifier = Modifier
@@ -77,19 +55,19 @@ fun RequestSongList(
                 tint = Color.White
             )
         }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Spacer(modifier = Modifier.height(20.dp))
-            // Top Bar
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 40.dp), // Aligned next to back arrow
+                    .padding(start = 40.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -111,9 +89,6 @@ fun RequestSongList(
                     Text(text = userName, color = Color.White, fontSize = 14.sp)
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // vector_image icon at top right (Matching ChannelPlayerUI)
                 Image(
                     painter = painterResource(id = R.drawable.vector_image),
                     contentDescription = "Vector Logo",
@@ -121,8 +96,9 @@ fun RequestSongList(
                     contentScale = ContentScale.Fit
                 )
             }
+
             Spacer(modifier = Modifier.height(20.dp))
-            // Banner Title
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,9 +106,8 @@ fun RequestSongList(
                     .background(cyanColor, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-
                 Text(
-                    text = "Requested songs List",
+                    text = "Requested Songs List (${requestedSongs.size})",
                     color = Color.Black,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -141,75 +116,74 @@ fun RequestSongList(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // List of Songs
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 20.dp)
-            ) {
-                items(requestedSongs) { song ->
-                    RequestedSongListItem(song)
+            if (requestedSongs.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No song requests yet.", color = Color.White.copy(0.6f), fontSize = 16.sp)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 20.dp)
+                ) {
+                    items(requestedSongs) { song ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.6f)),
+                            border = BorderStroke(1.dp, cyanColor.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(48.dp),
+                                    shape = CircleShape,
+                                    color = cyanColor.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, cyanColor)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = cyanColor,
+                                        modifier = Modifier.padding(12.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = song.songName,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Requested by: ${song.contactInfo}",
+                                        color = Color.White.copy(alpha = 0.6f),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = cyanColor.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "Pending",
+                                        color = cyanColor,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            // Footer Message
-            Text(
-                text = "Your request for [Song Name] by [Artist Name] has been submitted. We'll notify you when it's about to play.",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp, horizontal = 10.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun RequestedSongListItem(song: RequestedSong) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(width = 80.dp, height = 55.dp)
-                    .clip(RoundedCornerShape(10.dp))
-            ) {
-                Image(
-                    painter = painterResource(id = song.channelImage),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillBounds
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            // Song Name
-            Text(
-                text = song.songName,
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        // Music Note Circular Button
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }

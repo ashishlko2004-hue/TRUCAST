@@ -25,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -35,13 +37,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.trucast.R
 
 @Composable
 fun RequestSongUI(
-    userName: String = "Name",
+    userName: String = "Music Lover",
     onBackClick: () -> Unit = {},
     onSubmitRequest: (String, String) -> Unit = { _, _ -> }
 ) {
@@ -51,6 +56,7 @@ fun RequestSongUI(
     
     // Validation & Interaction States
     var showErrors by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
     var songNameTouched by remember { mutableStateOf(false) }
     var contactInfoTouched by remember { mutableStateOf(false) }
 
@@ -115,13 +121,13 @@ fun RequestSongUI(
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            Text(text = "Request song", color = cyanColor, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Request Song", color = cyanColor, fontSize = 32.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(30.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth().height(260.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().height(220.dp),
+                shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Image(
@@ -132,7 +138,7 @@ fun RequestSongUI(
                 )
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             // Song Name Input
             RequestInputField(
@@ -165,7 +171,6 @@ fun RequestSongUI(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Collective Error Message (White as requested)
             if (showErrors && !isFormValid) {
                 Text(
                     text = "Please fill in all details correctly",
@@ -181,7 +186,8 @@ fun RequestSongUI(
                 onClick = { 
                     showErrors = true
                     if (isFormValid) {
-                        onSubmitRequest(songName, contactInfo)
+                        SongRequestManager.addRequest(songName, contactInfo)
+                        showSuccessDialog = true
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -196,6 +202,89 @@ fun RequestSongUI(
             }
             
             Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // Success Notification Dialog
+        if (showSuccessDialog) {
+            Dialog(
+                onDismissRequest = { showSuccessDialog = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(0.85f).wrapContentHeight(),
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.Transparent
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(brush = Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF002B36))))
+                            .border(BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color(0xFF00BCD4), Color.Transparent))), RoundedCornerShape(28.dp))
+                            .padding(26.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                            val scale by infiniteTransition.animateFloat(
+                                initialValue = 1f, targetValue = 1.15f,
+                                animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "scale"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                                    .background(Color(0xFF00BCD4).copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF00BCD4), modifier = Modifier.size(32.dp))
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = "Request Sent & Notified!",
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Your song request for \"$songName\" has been successfully saved in the Request Song List. Notification received!",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 22.sp
+                            )
+                            Spacer(modifier = Modifier.height(30.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = { showSuccessDialog = false; onBackClick() },
+                                    modifier = Modifier.weight(1f).height(50.dp),
+                                    shape = RoundedCornerShape(25.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.15f))
+                                ) {
+                                    Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
+                                }
+                                Button(
+                                    onClick = {
+                                        showSuccessDialog = false
+                                        onSubmitRequest(songName, contactInfo)
+                                    },
+                                    modifier = Modifier.weight(1.2f).height(50.dp),
+                                    shape = RoundedCornerShape(25.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                                ) {
+                                    Text("VIEW LIST", color = Color.Black, fontWeight = FontWeight.Black)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -215,8 +304,8 @@ fun RequestInputField(
 ) {
     val borderColor by animateColorAsState(
         targetValue = when {
-            showError -> Color(0xFFFF5252) // Red for wrong entry
-            isValid && value.isNotEmpty() -> Color(0xFF4CAF50) // Green for Success
+            showError -> Color(0xFFFF5252)
+            isValid && value.isNotEmpty() -> Color(0xFF4CAF50)
             else -> Color.White.copy(alpha = 0.4f)
         },
         animationSpec = tween(400)
@@ -228,41 +317,26 @@ fun RequestInputField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                .height(56.dp)
+                .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
                 .onFocusChanged { if (!it.isFocused) onFocusLost() },
-            placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.6f)) },
-            leadingIcon = { 
-                Icon(
-                    icon, null, 
-                    tint = if (showError) Color(0xFFFF5252) else if (isValid && value.isNotEmpty()) Color(0xFF4CAF50) else Color.White 
-                ) 
-            },
+            placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp) },
+            leadingIcon = { Icon(imageVector = icon, contentDescription = null, tint = if (showError) Color(0xFFFF5252) else if (isValid && value.isNotEmpty()) Color(0xFF4CAF50) else Color.White) },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
             isError = showError,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
                 focusedBorderColor = borderColor,
-                unfocusedBorderColor = borderColor.copy(alpha = 0.6f),
+                unfocusedBorderColor = borderColor,
                 errorBorderColor = Color(0xFFFF5252),
-                cursorColor = Color(0xFF00BCD4)
+                cursorColor = Color(0xFF00BCD4),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
             )
         )
-        AnimatedVisibility(
-            visible = showError,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Text(
-                text = if (value.isEmpty()) "Field cannot be empty" else "Invalid entry",
-                color = Color.White, // Error text is white
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 12.dp, top = 4.dp)
-            )
-        }
     }
 }

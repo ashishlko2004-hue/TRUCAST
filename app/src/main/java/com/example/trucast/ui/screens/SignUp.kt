@@ -57,7 +57,6 @@ fun SignUp(onBackToLogin: () -> Unit,
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isAgreed by remember { mutableStateOf(false) }
-    
     var showErrors by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }

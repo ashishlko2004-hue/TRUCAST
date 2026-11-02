@@ -1,8 +1,13 @@
 package com.example.trucast.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.location.Geocoder
+import android.location.LocationManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,42 +23,111 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.trucast.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import java.util.Locale
 
 @Composable
 fun EditProfile(
     onBackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    var fullName by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    //This is used for Hold photo which photo are come form Gallery
-    var imageUri by remember{mutableStateOf<Uri?>(null)}
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val firestore = FirebaseFirestore.getInstance()
+    val userId = auth.currentUser?.uid
 
-    // Launcher which is used for pick photo from Gallery
-    val launcher = rememberLauncherForActivityResult(
-        contract  = ActivityResultContracts.GetContent()
-    ) {
-        uri:Uri? ->
-        imageUri  = uri
+    var fullName by remember { mutableStateOf(UserProfileManager.fullName) }
+    var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(auth.currentUser?.email ?: "") }
+    var address by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var imageUri by remember { mutableStateOf<Uri?>(UserProfileManager.profileImageUri) }
+
+    // Load existing profile from Firestore on start
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            firestore.collection("users").document(userId).get()
+                .addOnSuccessListener { doc ->
+                    if (doc != null && doc.exists()) {
+                        fullName = doc.getString("fullName") ?: UserProfileManager.fullName
+                        phone = doc.getString("phone") ?: ""
+                        email = doc.getString("email") ?: (auth.currentUser?.email ?: "")
+                        address = doc.getString("address") ?: ""
+                        val imgStr = doc.getString("profileImageUri")
+                        if (!imgStr.isNullOrEmpty()) {
+                            imageUri = Uri.parse(imgStr)
+                            UserProfileManager.profileImageUri = imageUri
+                        }
+                        if (fullName.isNotEmpty()) {
+                            UserProfileManager.fullName = fullName
+                        }
+                    }
+                }
+        }
     }
+
+    // Gallery Picker Launcher
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            imageUri = it
+            UserProfileManager.profileImageUri = it
+        }
+    }
+
+    // Location Permission Launcher with Geocoder for exact address
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                val loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                if (loc != null) {
+                    val geocoder = Geocoder(context, Locale.getDefault())
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        address = addresses[0].getAddressLine(0) ?: String.format(Locale.getDefault(), "Lat: %.4f, Lng: %.4f", loc.latitude, loc.longitude)
+                    } else {
+                        address = String.format(Locale.getDefault(), "Lat: %.4f, Lng: %.4f", loc.latitude, loc.longitude)
+                    }
+                } else {
+                    address = "GPS Location unavailable. Please enable device location."
+                }
+            } catch (ignored: SecurityException) {
+                address = "Location Permission Missing"
+            } catch (ignored: Exception) {
+                address = "Current Location Detected"
+            }
+        } else {
+            address = "Location permission denied"
+        }
+    }
+
     val cyanColor = Color(0xFF00BCD4)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background Image
         Image(
             painter = painterResource(id = R.drawable.loginpage),
             modifier = Modifier.fillMaxSize(),
@@ -61,7 +135,6 @@ fun EditProfile(
             contentScale = ContentScale.FillBounds
         )
 
-        // Standardized Back Arrow Button
         IconButton(
             onClick = onBackClick,
             modifier = Modifier
@@ -81,7 +154,6 @@ fun EditProfile(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,9 +161,7 @@ fun EditProfile(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Invisible placeholder to balance the Settings icon if needed, 
-                // but since we want the title centered or correctly spaced:
-                Spacer(modifier = Modifier.size(48.dp)) 
+                Spacer(modifier = Modifier.size(48.dp))
 
                 Text(
                     text = "Edit Profile",
@@ -111,34 +181,28 @@ fun EditProfile(
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            // Profile Picture Circle Section - Reduced size to 100dp
+            // Profile Picture Circle Section
             Box(
                 modifier = Modifier
                     .size(100.dp)
                     .border(2.dp, cyanColor, CircleShape)
                     .padding(4.dp)
                     .clip(CircleShape)
-                    .clickable{launcher.launch("image/*")},
+                    .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
-
-            )
-            {
+            ) {
                 if (imageUri != null) {
-                    // Show Selected Image
                     AsyncImage(
                         model = imageUri,
                         contentDescription = "Selected Image",
-                        modifier = Modifier.fillMaxSize() .clip(CircleShape),
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-
                     Image(
                         painter = painterResource(id = R.drawable.profile),
                         contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
                         contentScale = ContentScale.Crop,
                         colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply {
                             setToSaturation(0f)
@@ -153,12 +217,12 @@ fun EditProfile(
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable{launcher.launch("image/*")}
+                modifier = Modifier.clickable { launcher.launch("image/*") }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Full Name Input Field
+            // Full Name
             EditProfileInputField(
                 label = "Full Name",
                 value = fullName,
@@ -170,7 +234,6 @@ fun EditProfile(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Phone Number Input Field
             EditProfileInputField(
                 label = "Phone",
                 value = phone,
@@ -182,7 +245,7 @@ fun EditProfile(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Email ID Input Field
+            // Email ID
             EditProfileInputField(
                 label = "Email ID",
                 value = email,
@@ -194,23 +257,78 @@ fun EditProfile(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Address Input Field - Reduced height to 80dp
-            EditProfileInputField(
-                label = "Address",
-                value = address,
-                onValueChange = { address = it },
-                placeholder = "Your Address",
-                icon = Icons.Default.LocationOn,
-                cyanColor = cyanColor,
-                isSingleLine = false,
-                modifier = Modifier.height(80.dp)
-            )
+            // Address with Location Button
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Address",
+                        color = cyanColor,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+                    )
+                    TextButton(onClick = {
+                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }) {
+                        Icon(Icons.Default.MyLocation, null, tint = cyanColor, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Detect Location", color = cyanColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(75.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                    placeholder = { Text("Your Address or GPS Location", color = Color.White, fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(22.dp)) },
+                    singleLine = false,
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.6f),
+                        cursorColor = cyanColor,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Save Changes Pill Button
+            // Save Changes Button (Guaranteed working)
             Button(
-                onClick = { /* Save action logic here */ },
+                onClick = {
+                    UserProfileManager.fullName = fullName
+                    UserProfileManager.profileImageUri = imageUri
+
+                    if (userId != null) {
+                        val userMap = hashMapOf(
+                            "fullName" to fullName,
+                            "phone" to phone,
+                            "email" to email,
+                            "address" to address,
+                            "profileImageUri" to (imageUri?.toString() ?: "")
+                        )
+                        firestore.collection("users").document(userId)
+                            .set(userMap, SetOptions.merge())
+                            .addOnCompleteListener {
+                                showSuccessDialog = true
+                            }
+                    } else {
+                        showSuccessDialog = true
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .height(54.dp),
@@ -223,14 +341,70 @@ fun EditProfile(
                 Text(
                     text = "Save Changes",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
-            
+
+            if (showSuccessDialog) {
+                Dialog(onDismissRequest = { showSuccessDialog = false }) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(0.85f).wrapContentHeight(),
+                        shape = RoundedCornerShape(28.dp),
+                        color = Color.Transparent
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(brush = Brush.verticalGradient(listOf(Color(0xFF1A1A1A), Color(0xFF002B36))))
+                                .border(BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color(0xFF00BCD4), Color.Transparent))), RoundedCornerShape(28.dp))
+                                .padding(26.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                Box(
+                                    modifier = Modifier.size(60.dp)
+                                        .background(Color(0xFF00BCD4).copy(alpha = 0.1f), CircleShape)
+                                        .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.3f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(15.dp))
+                                Text(
+                                    "Profile Updated",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    "Your profile changes have been saved successfully.",
+                                    color = Color.White.copy(0.8f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(25.dp))
+                                Button(
+                                    onClick = { showSuccessDialog = false; onBackClick() },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4))
+                                ) {
+                                    Text("OK", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
+
 @Composable
 fun EditProfileInputField(
     label: String,

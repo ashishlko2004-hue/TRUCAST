@@ -112,6 +112,13 @@ fun AppNavHost(
                 onChannelClick = { channel ->
                     val encodedName = Uri.encode(channel.name)
                     navController.navigate("${Routes.CHANNEL_PLAYER}/$encodedName")
+                },
+                onNotificationClick = {
+                    navController.navigate(Routes.REQUEST_SONG_LIST)
+                },
+                onNowPlayingClick = { channelName ->
+                    val encodedName = Uri.encode(channelName)
+                    navController.navigate("${Routes.CHANNEL_PLAYER}/$encodedName")
                 }
             )
         }
@@ -138,7 +145,14 @@ fun AppNavHost(
         }
 
         composable(Routes.SETTING) {
-            SettingUI(onBackClick = { navController.popBackStack() })
+            SettingUI(
+                onBackClick = { navController.popBackStack() },
+                onLogoutClick = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.CHANNELS) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Routes.REQUEST_SONG) {
