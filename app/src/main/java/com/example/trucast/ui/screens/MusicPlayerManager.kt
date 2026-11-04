@@ -1,7 +1,6 @@
 package com.example.trucast.ui.screens
 
 import android.content.Context
-import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,42 +44,22 @@ object MusicPlayerManager {
         mediaPlayer = null
 
         try {
-            val player = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .build()
-                )
-                val afd = context.resources.openRawResourceFd(song.audioResId)
-                if (afd != null) {
-                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                    afd.close()
-                    prepare()
-                    start()
-                }
-            }
-            mediaPlayer = player
-            isPlaying = true
+            val player = MediaPlayer.create(context, song.audioResId)
+            if (player != null) {
+                player.start()
+                mediaPlayer = player
+                isPlaying = true
 
-            player.setOnCompletionListener {
-                if (songList.isNotEmpty()) {
-                    val nextIndex = (currentIndex + 1) % songList.size
-                    playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
+                player.setOnCompletionListener {
+                    if (songList.isNotEmpty()) {
+                        val nextIndex = (currentIndex + 1) % songList.size
+                        playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
+                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback
-            try {
-                val fallbackPlayer = MediaPlayer.create(context, song.audioResId)
-                fallbackPlayer?.start()
-                mediaPlayer = fallbackPlayer
-                isPlaying = true
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-                isPlaying = false
-            }
+            isPlaying = false
         }
     }
 
