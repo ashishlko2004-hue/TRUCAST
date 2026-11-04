@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.media3.common.Player
 import com.example.trucast.R
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -41,30 +42,32 @@ object MusicRepository {
     fun getSongsForChannel(channelName: String): List<Song> {
         return when {
             channelName.contains("Wedding", true) -> listOf(
-                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Chal Shadi Kar Lite", "Kurukshetra Vocals", "4:12", R.drawable.pop, R.raw.chal_shadi_kar_lite, null),
-                Song("Shaadi Celebration", "Wedding Vocals", "3:50", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Din Shagna Da", "Jasleen Royal", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
+                Song("Kabira", "Arijit Singh", "4:08", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null),
+                Song("Banno Tera Swagger", "Brijesh Shandilya", "3:30", R.drawable.pop, R.raw.chal_shadi_kar_lite, null),
+                Song("Navrai Majhi", "Sunidhi Chauhan", "3:52", R.drawable.indie, R.raw.sanson_ki_mala, null)
             )
             channelName.contains("Workout", true) || channelName.contains("Gym", true) -> listOf(
-                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.u, R.raw.sanson_ki_mala, null),
-                Song("Gym Pump Vocals", "Workout Vocals", "3:30", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Sultan Anthem", "Sukhwinder Singh", "4:20", R.drawable.u, R.raw.sanson_ki_mala, null),
+                Song("Apna Time Aayega", "DIVINE", "2:48", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
+                Song("Zinda", "Siddharth Mahadevan", "3:25", R.drawable.new_img, R.raw.chal_shadi_kar_lite, null)
             )
             channelName.contains("Party", true) || channelName.contains("Club", true) -> listOf(
-                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.pop, R.raw.sajanva_mirzapur, null),
-                Song("Party Club Vocals", "DJ Vocal Mix", "3:20", R.drawable.charts, R.raw.chal_shadi_kar_lite, null)
+                Song("Kar Gayi Chull", "Badshah, Neha Kakkar", "3:07", R.drawable.pop, R.raw.sajanva_mirzapur, null),
+                Song("Dil Chori", "Yo Yo Honey Singh", "3:40", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
+                Song("High Rated Gabru", "Guru Randhawa", "3:35", R.drawable.rnb, R.raw.chal_shadi_kar_lite, null)
             )
             channelName.contains("Chill", true) || channelName.contains("Relax", true) -> listOf(
-                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.indie, R.raw.sanson_ki_mala, null),
-                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Channa Mereya (Lofi)", "Arijit Singh", "4:15", R.drawable.indie, R.raw.sanson_ki_mala, null),
+                Song("Raabta (Relaxing Mix)", "Arijit Singh", "3:50", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null)
             )
             channelName.contains("Romantic", true) || channelName.contains("Romance", true) -> listOf(
-                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.maskgroup, R.raw.sajanva_mirzapur, null),
-                Song("Chal Shadi Kar Lite", "Kurukshetra Vocals", "4:12", R.drawable.indie, R.raw.chal_shadi_kar_lite, null)
+                Song("Kesariya", "Arijit Singh", "4:28", R.drawable.maskgroup, R.raw.chal_shadi_kar_lite, null),
+                Song("Raataan Lambiyan", "Jubin Nautiyal", "3:50", R.drawable.indie, R.raw.dulhe_ki_behen_brigade, null)
             )
             else -> listOf(
-                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.charts, R.raw.sanson_ki_mala, null),
-                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.pop, R.raw.sajanva_mirzapur, null)
+                Song("Global Top Hit 2025", "Top Artist", "3:30", R.drawable.charts, R.raw.sanson_ki_mala, null),
+                Song("Vibing Anthem", "Global Star", "3:15", R.drawable.pop, R.raw.dulhe_ki_behen_brigade, null)
             )
         }
     }
@@ -95,9 +98,9 @@ fun ChannelPlayerUI(
     var sleepTimerActiveMinutes by remember { mutableStateOf<Int?>(null) }
 
     // Seekbar & Repeat States
-    var currentPosition by remember { mutableStateOf(0) }
-    var duration by remember { mutableStateOf(1) }
-    var isRepeatEnabled by remember { mutableStateOf(MusicPlayerManager.mediaPlayer?.isLooping ?: false) }
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(1L) }
+    var isRepeatEnabled by remember { mutableStateOf(MusicPlayerManager.exoPlayer?.repeatMode == Player.REPEAT_MODE_ONE) }
 
     val currentSong = songList[currentSongIndex % songList.size]
     val isLiked = FavoriteManager.isLiked(currentSong.title)
@@ -109,20 +112,20 @@ fun ChannelPlayerUI(
 
     // Start playing initial song on enter if not already playing this channel
     LaunchedEffect(currentSongIndex, songList) {
-        if (MusicPlayerManager.currentChannel != channelName || MusicPlayerManager.mediaPlayer == null) {
+        if (MusicPlayerManager.currentChannel != channelName || MusicPlayerManager.exoPlayer == null) {
             startPlaying(currentSong)
         } else {
             isPlaying = MusicPlayerManager.isPlaying
         }
     }
 
-    // Track playback progress
-    LaunchedEffect(isPlaying, MusicPlayerManager.mediaPlayer) {
+    // Track playback progress via ExoPlayer
+    LaunchedEffect(isPlaying, MusicPlayerManager.exoPlayer) {
         while (isPlaying) {
-            MusicPlayerManager.mediaPlayer?.let { player ->
+            MusicPlayerManager.exoPlayer?.let { player ->
                 try {
                     currentPosition = player.currentPosition
-                    duration = player.duration.coerceAtLeast(1)
+                    duration = player.duration.coerceAtLeast(1L)
                     isPlaying = player.isPlaying
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -154,8 +157,8 @@ fun ChannelPlayerUI(
 
     val seekBackward: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        MusicPlayerManager.mediaPlayer?.let { player ->
-            val newPos = (player.currentPosition - 10000).coerceAtLeast(0)
+        MusicPlayerManager.exoPlayer?.let { player ->
+            val newPos = (player.currentPosition - 10000L).coerceAtLeast(0L)
             player.seekTo(newPos)
             currentPosition = newPos
         }
@@ -163,8 +166,8 @@ fun ChannelPlayerUI(
 
     val seekForward: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        MusicPlayerManager.mediaPlayer?.let { player ->
-            val newPos = (player.currentPosition + 10000).coerceAtMost(player.duration)
+        MusicPlayerManager.exoPlayer?.let { player ->
+            val newPos = (player.currentPosition + 10000L).coerceAtMost(player.duration)
             player.seekTo(newPos)
             currentPosition = newPos
         }
@@ -173,10 +176,10 @@ fun ChannelPlayerUI(
     val toggleRepeat: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         isRepeatEnabled = !isRepeatEnabled
-        MusicPlayerManager.mediaPlayer?.isLooping = isRepeatEnabled
+        MusicPlayerManager.exoPlayer?.repeatMode = if (isRepeatEnabled) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
-    fun formatTime(ms: Int): String {
+    fun formatTime(ms: Long): String {
         val seconds = (ms / 1000) % 60
         val minutes = (ms / (1000 * 60)) % 60
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
@@ -301,7 +304,7 @@ fun ChannelPlayerUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist: ${currentSong.artist} | Real Vocal Audio",
+                        text = "Artist: ${currentSong.artist} | ExoPlayer Engine",
                         color = cyanColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -331,8 +334,8 @@ fun ChannelPlayerUI(
                 Slider(
                     value = currentPosition.toFloat(),
                     onValueChange = { newVal ->
-                        currentPosition = newVal.toInt()
-                        MusicPlayerManager.mediaPlayer?.seekTo(newVal.toInt())
+                        currentPosition = newVal.toLong()
+                        MusicPlayerManager.exoPlayer?.seekTo(newVal.toLong())
                     },
                     valueRange = 0f..duration.toFloat(),
                     colors = SliderDefaults.colors(
@@ -444,7 +447,7 @@ fun ChannelPlayerUI(
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        // Playlist Bottom Sheet Modal - Fixed with LazyColumn & Surface onClick
+        // Playlist Bottom Sheet Modal
         if (showPlaylistSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showPlaylistSheet = false },
@@ -523,7 +526,7 @@ fun ChannelPlayerUI(
             }
         }
 
-        // Real-Time Synchronized Lyrics Bottom Sheet Modal - Fixed with Surface onClick
+        // Real-Time Synchronized Lyrics Bottom Sheet Modal
         if (showLyricsSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showLyricsSheet = false },
@@ -562,8 +565,8 @@ fun ChannelPlayerUI(
                             val isHighlighted = idx == activeLyricIndex
                             Surface(
                                 onClick = {
-                                    MusicPlayerManager.mediaPlayer?.seekTo(lyric.timeMs)
-                                    currentPosition = lyric.timeMs
+                                    MusicPlayerManager.exoPlayer?.seekTo(lyric.timeMs.toLong())
+                                    currentPosition = lyric.timeMs.toLong()
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isHighlighted) cyanColor.copy(0.12f) else Color.Transparent,

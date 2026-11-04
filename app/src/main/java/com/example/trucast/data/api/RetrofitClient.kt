@@ -11,6 +11,7 @@ object RetrofitClient {
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+
             .create(MusicApiService::class.java)
     }
 }

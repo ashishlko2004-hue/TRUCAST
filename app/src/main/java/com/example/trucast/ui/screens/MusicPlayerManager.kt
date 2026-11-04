@@ -1,11 +1,13 @@
 package com.example.trucast.ui.screens
 
 import android.content.Context
-import android.media.MediaPlayer
-import android.media.PlaybackParams
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import com.example.trucast.R
 
 data class Song(
@@ -23,9 +25,16 @@ object MusicPlayerManager {
     var currentArtist by mutableStateOf("Wedding Vocals")
     var currentCoverRes by mutableStateOf(R.drawable.bol)
     var isPlaying by mutableStateOf(false)
-    var mediaPlayer: MediaPlayer? = null
+
+    var exoPlayer: ExoPlayer? = null
     var songList: List<Song> = listOf()
     var currentIndex by mutableStateOf(0)
+
+    val currentPosition: Long
+        get() = exoPlayer?.currentPosition ?: 0L
+
+    val duration: Long
+        get() = exoPlayer?.duration?.coerceAtLeast(1L) ?: 1L
 
     fun playSong(context: Context, song: Song, channel: String, list: List<Song>, index: Int) {
         currentChannel = channel
@@ -36,39 +45,37 @@ object MusicPlayerManager {
         currentIndex = index
 
         try {
-            mediaPlayer?.stop()
-            mediaPlayer?.reset()
-            mediaPlayer?.release()
+            exoPlayer?.stop()
+            exoPlayer?.release()
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        mediaPlayer = null
+        exoPlayer = null
 
         try {
-            val player = MediaPlayer.create(context, song.audioResId)
-            if (player != null) {
-                player.start()
+            val player = ExoPlayer.Builder(context).build()
+            val uri = Uri.parse("android.resource://${context.packageName}/${song.audioResId}")
+            val mediaItem = MediaItem.fromUri(uri)
 
-                // Explicitly lock playback speed and pitch to normal 1.0x
-                try {
-                    val params = PlaybackParams()
-                    params.speed = 1.0f
-                    params.pitch = 1.0f
-                    player.playbackParams = params
-                } catch (e: Exception) {
-                    e.printStackTrace()
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            player.playWhenReady = true
+            exoPlayer = player
+            isPlaying = true
+
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlayingState: Boolean) {
+                    isPlaying = isPlayingState
                 }
-
-                mediaPlayer = player
-                isPlaying = true
-
-                player.setOnCompletionListener {
-                    if (songList.isNotEmpty()) {
-                        val nextIndex = (currentIndex + 1) % songList.size
-                        playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        if (songList.isNotEmpty()) {
+                            val nextIndex = (currentIndex + 1) % songList.size
+                            playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
+                        }
                     }
                 }
-            }
+            })
         } catch (e: Exception) {
             e.printStackTrace()
             isPlaying = false
@@ -80,12 +87,12 @@ object MusicPlayerManager {
     }
 
     fun togglePlayPause(context: Context) {
-        mediaPlayer?.let { player ->
+        exoPlayer?.let { player ->
             if (player.isPlaying) {
                 player.pause()
                 isPlaying = false
             } else {
-                player.start()
+                player.play()
                 isPlaying = true
             }
         } ?: run {
