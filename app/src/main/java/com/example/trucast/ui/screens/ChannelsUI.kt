@@ -292,7 +292,7 @@ fun ChannelsUI(
         }
 
         // Persistent Now Playing Mini-Player Bar
-        if (MusicPlayerManager.exoPlayer != null) {
+        if (MusicPlayerManager.mediaPlayer != null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

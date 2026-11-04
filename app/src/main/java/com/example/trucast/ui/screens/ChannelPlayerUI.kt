@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.media3.common.Player
 import com.example.trucast.R
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -98,9 +97,9 @@ fun ChannelPlayerUI(
     var sleepTimerActiveMinutes by remember { mutableStateOf<Int?>(null) }
 
     // Seekbar & Repeat States
-    var currentPosition by remember { mutableStateOf(0L) }
-    var duration by remember { mutableStateOf(1L) }
-    var isRepeatEnabled by remember { mutableStateOf(MusicPlayerManager.exoPlayer?.repeatMode == Player.REPEAT_MODE_ONE) }
+    var currentPosition by remember { mutableStateOf(0) }
+    var duration by remember { mutableStateOf(1) }
+    var isRepeatEnabled by remember { mutableStateOf(MusicPlayerManager.mediaPlayer?.isLooping ?: false) }
 
     val currentSong = songList[currentSongIndex % songList.size]
     val isLiked = FavoriteManager.isLiked(currentSong.title)
@@ -112,20 +111,20 @@ fun ChannelPlayerUI(
 
     // Start playing initial song on enter if not already playing this channel
     LaunchedEffect(currentSongIndex, songList) {
-        if (MusicPlayerManager.currentChannel != channelName || MusicPlayerManager.exoPlayer == null) {
+        if (MusicPlayerManager.currentChannel != channelName || MusicPlayerManager.mediaPlayer == null) {
             startPlaying(currentSong)
         } else {
             isPlaying = MusicPlayerManager.isPlaying
         }
     }
 
-    // Track playback progress via ExoPlayer
-    LaunchedEffect(isPlaying, MusicPlayerManager.exoPlayer) {
+    // Track playback progress
+    LaunchedEffect(isPlaying, MusicPlayerManager.mediaPlayer) {
         while (isPlaying) {
-            MusicPlayerManager.exoPlayer?.let { player ->
+            MusicPlayerManager.mediaPlayer?.let { player ->
                 try {
                     currentPosition = player.currentPosition
-                    duration = player.duration.coerceAtLeast(1L)
+                    duration = player.duration.coerceAtLeast(1)
                     isPlaying = player.isPlaying
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -157,8 +156,8 @@ fun ChannelPlayerUI(
 
     val seekBackward: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        MusicPlayerManager.exoPlayer?.let { player ->
-            val newPos = (player.currentPosition - 10000L).coerceAtLeast(0L)
+        MusicPlayerManager.mediaPlayer?.let { player ->
+            val newPos = (player.currentPosition - 10000).coerceAtLeast(0)
             player.seekTo(newPos)
             currentPosition = newPos
         }
@@ -166,8 +165,8 @@ fun ChannelPlayerUI(
 
     val seekForward: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        MusicPlayerManager.exoPlayer?.let { player ->
-            val newPos = (player.currentPosition + 10000L).coerceAtMost(player.duration)
+        MusicPlayerManager.mediaPlayer?.let { player ->
+            val newPos = (player.currentPosition + 10000).coerceAtMost(player.duration)
             player.seekTo(newPos)
             currentPosition = newPos
         }
@@ -176,10 +175,10 @@ fun ChannelPlayerUI(
     val toggleRepeat: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         isRepeatEnabled = !isRepeatEnabled
-        MusicPlayerManager.exoPlayer?.repeatMode = if (isRepeatEnabled) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        MusicPlayerManager.mediaPlayer?.isLooping = isRepeatEnabled
     }
 
-    fun formatTime(ms: Long): String {
+    fun formatTime(ms: Int): String {
         val seconds = (ms / 1000) % 60
         val minutes = (ms / (1000 * 60)) % 60
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
@@ -304,7 +303,7 @@ fun ChannelPlayerUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist: ${currentSong.artist} | ExoPlayer Engine",
+                        text = "Artist: ${currentSong.artist} | Real Vocal Song",
                         color = cyanColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -334,8 +333,8 @@ fun ChannelPlayerUI(
                 Slider(
                     value = currentPosition.toFloat(),
                     onValueChange = { newVal ->
-                        currentPosition = newVal.toLong()
-                        MusicPlayerManager.exoPlayer?.seekTo(newVal.toLong())
+                        currentPosition = newVal.toInt()
+                        MusicPlayerManager.mediaPlayer?.seekTo(newVal.toInt())
                     },
                     valueRange = 0f..duration.toFloat(),
                     colors = SliderDefaults.colors(
@@ -565,8 +564,8 @@ fun ChannelPlayerUI(
                             val isHighlighted = idx == activeLyricIndex
                             Surface(
                                 onClick = {
-                                    MusicPlayerManager.exoPlayer?.seekTo(lyric.timeMs.toLong())
-                                    currentPosition = lyric.timeMs.toLong()
+                                    MusicPlayerManager.mediaPlayer?.seekTo(lyric.timeMs)
+                                    currentPosition = lyric.timeMs
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isHighlighted) cyanColor.copy(0.12f) else Color.Transparent,
@@ -639,7 +638,7 @@ fun ChannelPlayerUI(
 fun EqualizerBars(isPlaying: Boolean) {
     val transition = rememberInfiniteTransition(label = "eq")
     val h1 by transition.animateFloat(10f, 35f, infiniteRepeatable(tween(300, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h1")
-    val h2 by transition.animateFloat(15f, 45f, infiniteRepeatable(tween(400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h2")
+    val h2 by transition.animateFloat(10f, 35f, infiniteRepeatable(tween(400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h2")
     val h3 by transition.animateFloat(5f, 25f, infiniteRepeatable(tween(250, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h3")
     val h4 by transition.animateFloat(20f, 40f, infiniteRepeatable(tween(350, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h4")
     val h5 by transition.animateFloat(12f, 30f, infiniteRepeatable(tween(450, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "h5")
