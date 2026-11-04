@@ -1,12 +1,16 @@
+@file:OptIn(UnstableApi::class)
+
 package com.example.trucast.ui.screens
 
 import android.content.Context
-import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.trucast.R
 
@@ -54,7 +58,8 @@ object MusicPlayerManager {
 
         try {
             val player = ExoPlayer.Builder(context).build()
-            val uri = Uri.parse("android.resource://${context.packageName}/${song.audioResId}")
+            // Official Google Media3 URI helper for raw resource MP3s
+            val uri = RawResourceDataSource.buildRawResourceUri(song.audioResId)
             val mediaItem = MediaItem.fromUri(uri)
 
             player.setMediaItem(mediaItem)
