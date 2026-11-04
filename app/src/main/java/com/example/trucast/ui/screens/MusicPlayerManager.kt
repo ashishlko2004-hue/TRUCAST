@@ -2,6 +2,7 @@ package com.example.trucast.ui.screens
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.media.PlaybackParams
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -47,6 +48,17 @@ object MusicPlayerManager {
             val player = MediaPlayer.create(context, song.audioResId)
             if (player != null) {
                 player.start()
+
+                // Explicitly lock playback speed and pitch to normal 1.0x
+                try {
+                    val params = PlaybackParams()
+                    params.speed = 1.0f
+                    params.pitch = 1.0f
+                    player.playbackParams = params
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
                 mediaPlayer = player
                 isPlaying = true
 
