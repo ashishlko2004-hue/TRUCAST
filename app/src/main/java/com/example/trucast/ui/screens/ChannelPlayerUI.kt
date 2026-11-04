@@ -41,32 +41,30 @@ object MusicRepository {
     fun getSongsForChannel(channelName: String): List<Song> {
         return when {
             channelName.contains("Wedding", true) -> listOf(
-                Song("Din Shagna Da", "Jasleen Royal", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Kabira", "Arijit Singh", "4:08", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Banno Tera Swagger", "Brijesh Shandilya", "3:30", R.drawable.pop, R.raw.chal_shadi_kar_lite, null),
-                Song("Navrai Majhi", "Sunidhi Chauhan", "3:52", R.drawable.indie, R.raw.sanson_ki_mala, null)
+                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
+                Song("Chal Shadi Kar Lite", "Kurukshetra Vocals", "4:12", R.drawable.pop, R.raw.chal_shadi_kar_lite, null),
+                Song("Shaadi Celebration", "Wedding Vocals", "3:50", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null)
             )
             channelName.contains("Workout", true) || channelName.contains("Gym", true) -> listOf(
-                Song("Sultan Anthem", "Sukhwinder Singh", "4:20", R.drawable.u, R.raw.sanson_ki_mala, null),
-                Song("Apna Time Aayega", "DIVINE", "2:48", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Zinda", "Siddharth Mahadevan", "3:25", R.drawable.new_img, R.raw.chal_shadi_kar_lite, null)
+                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.u, R.raw.sanson_ki_mala, null),
+                Song("Gym Pump Vocals", "Workout Vocals", "3:30", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null)
             )
             channelName.contains("Party", true) || channelName.contains("Club", true) -> listOf(
-                Song("Kar Gayi Chull", "Badshah, Neha Kakkar", "3:07", R.drawable.pop, R.raw.sajanva_mirzapur, null),
-                Song("Dil Chori", "Yo Yo Honey Singh", "3:40", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
-                Song("High Rated Gabru", "Guru Randhawa", "3:35", R.drawable.rnb, R.raw.chal_shadi_kar_lite, null)
+                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.pop, R.raw.sajanva_mirzapur, null),
+                Song("Party Club Vocals", "DJ Vocal Mix", "3:20", R.drawable.charts, R.raw.chal_shadi_kar_lite, null)
             )
             channelName.contains("Chill", true) || channelName.contains("Relax", true) -> listOf(
-                Song("Channa Mereya (Lofi)", "Arijit Singh", "4:15", R.drawable.indie, R.raw.sanson_ki_mala, null),
-                Song("Raabta (Relaxing Mix)", "Arijit Singh", "3:50", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.indie, R.raw.sanson_ki_mala, null),
+                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null)
             )
             channelName.contains("Romantic", true) || channelName.contains("Romance", true) -> listOf(
-                Song("Kesariya", "Arijit Singh", "4:28", R.drawable.maskgroup, R.raw.chal_shadi_kar_lite, null),
-                Song("Raataan Lambiyan", "Jubin Nautiyal", "3:50", R.drawable.indie, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.maskgroup, R.raw.sajanva_mirzapur, null),
+                Song("Chal Shadi Kar Lite", "Kurukshetra Vocals", "4:12", R.drawable.indie, R.raw.chal_shadi_kar_lite, null)
             )
             else -> listOf(
-                Song("Global Top Hit 2025", "Top Artist", "3:30", R.drawable.charts, R.raw.sanson_ki_mala, null),
-                Song("Vibing Anthem", "Global Star", "3:15", R.drawable.pop, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Dulhe Ki Behen Brigade", "Wedding Vocals", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
+                Song("Sanson Ki Mala", "Mirzapur Vocals", "4:30", R.drawable.charts, R.raw.sanson_ki_mala, null),
+                Song("Sajanva", "Mirzapur Vocals", "3:08", R.drawable.pop, R.raw.sajanva_mirzapur, null)
             )
         }
     }
@@ -303,7 +301,7 @@ fun ChannelPlayerUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist: ${currentSong.artist} | Local Verified Song",
+                        text = "Artist: ${currentSong.artist} | Real Vocal Audio",
                         color = cyanColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -446,7 +444,7 @@ fun ChannelPlayerUI(
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        // Playlist Bottom Sheet Modal
+        // Playlist Bottom Sheet Modal - Fixed with LazyColumn & Surface onClick
         if (showPlaylistSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showPlaylistSheet = false },
@@ -464,57 +462,68 @@ fun ChannelPlayerUI(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    songList.forEachIndexed { index, song ->
-                        val liked = FavoriteManager.isLiked(song.title)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        itemsIndexed(songList) { index, song ->
+                            val liked = FavoriteManager.isLiked(song.title)
+                            Surface(
+                                onClick = {
                                     currentSongIndex = index
                                     isPlaying = true
                                     showPlaylistSheet = false
                                     startPlaying(song)
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = song.coverRes),
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = song.title,
-                                        color = if (index == currentSongIndex) cyanColor else Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (index == currentSongIndex) cyanColor.copy(0.15f) else Color.Transparent,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = song.coverRes),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
                                     )
-                                    if (liked) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(Icons.Default.Favorite, null, tint = Color(0xFFFF5252), modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = song.title,
+                                                color = if (index == currentSongIndex) cyanColor else Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp
+                                            )
+                                            if (liked) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Icon(Icons.Default.Favorite, null, tint = Color(0xFFFF5252), modifier = Modifier.size(14.dp))
+                                            }
+                                        }
+                                        Text(
+                                            text = "${song.artist} • ${song.duration}",
+                                            color = Color.White.copy(0.6f),
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    if (index == currentSongIndex && isPlaying) {
+                                        Icon(Icons.Default.VolumeUp, null, tint = cyanColor)
                                     }
                                 }
-                                Text(
-                                    text = "${song.artist} • ${song.duration}",
-                                    color = Color.White.copy(0.6f),
-                                    fontSize = 12.sp
-                                )
-                            }
-                            if (index == currentSongIndex && isPlaying) {
-                                Icon(Icons.Default.VolumeUp, null, tint = cyanColor)
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             }
         }
 
-        // Real-Time Synchronized Lyrics Bottom Sheet Modal
+        // Real-Time Synchronized Lyrics Bottom Sheet Modal - Fixed with Surface onClick
         if (showLyricsSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showLyricsSheet = false },
@@ -546,28 +555,32 @@ fun ChannelPlayerUI(
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth().height(300.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 20.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 10.dp)
                     ) {
                         itemsIndexed(lyrics) { idx, lyric ->
                             val isHighlighted = idx == activeLyricIndex
-                            Text(
-                                text = lyric.text,
-                                color = if (isHighlighted) cyanColor else Color.White.copy(0.4f),
-                                fontSize = if (isHighlighted) 18.sp else 15.sp,
-                                fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.Normal,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        MusicPlayerManager.mediaPlayer?.seekTo(lyric.timeMs)
-                                        currentPosition = lyric.timeMs
-                                    }
-                                    .padding(vertical = 6.dp)
-                            )
+                            Surface(
+                                onClick = {
+                                    MusicPlayerManager.mediaPlayer?.seekTo(lyric.timeMs)
+                                    currentPosition = lyric.timeMs
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isHighlighted) cyanColor.copy(0.12f) else Color.Transparent,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = lyric.text,
+                                    color = if (isHighlighted) cyanColor else Color.White.copy(0.5f),
+                                    fontSize = if (isHighlighted) 17.sp else 14.sp,
+                                    fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.Normal,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp)
+                                )
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             }
         }
@@ -600,7 +613,7 @@ fun ChannelPlayerUI(
                                     showSleepTimerDialog = false
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(24.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                                 border = BorderStroke(1.dp, if (sleepTimerActiveMinutes == mins) cyanColor else Color.White.copy(0.3f))
                             ) {
