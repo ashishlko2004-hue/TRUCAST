@@ -1,6 +1,7 @@
 package com.example.trucast.ui.screens
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,23 +35,52 @@ object MusicPlayerManager {
         songList = list
         currentIndex = index
 
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
         try {
-            // Play the user's actual real vocal MP3 files from res/raw
-            mediaPlayer = MediaPlayer.create(context, song.audioResId).apply {
-                start()
-                MusicPlayerManager.isPlaying = true
-                setOnCompletionListener {
-                    if (songList.isNotEmpty()) {
-                        val nextIndex = (currentIndex + 1) % songList.size
-                        playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
-                    }
+            mediaPlayer?.stop()
+            mediaPlayer?.reset()
+            mediaPlayer?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        mediaPlayer = null
+
+        try {
+            val player = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                val afd = context.resources.openRawResourceFd(song.audioResId)
+                if (afd != null) {
+                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                    afd.close()
+                    prepare()
+                    start()
+                }
+            }
+            mediaPlayer = player
+            isPlaying = true
+
+            player.setOnCompletionListener {
+                if (songList.isNotEmpty()) {
+                    val nextIndex = (currentIndex + 1) % songList.size
+                    playSong(context, songList[nextIndex], currentChannel, songList, nextIndex)
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            MusicPlayerManager.isPlaying = false
+            // Fallback
+            try {
+                val fallbackPlayer = MediaPlayer.create(context, song.audioResId)
+                fallbackPlayer?.start()
+                mediaPlayer = fallbackPlayer
+                isPlaying = true
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                isPlaying = false
+            }
         }
     }
 
@@ -62,10 +92,10 @@ object MusicPlayerManager {
         mediaPlayer?.let { player ->
             if (player.isPlaying) {
                 player.pause()
-                MusicPlayerManager.isPlaying = false
+                isPlaying = false
             } else {
                 player.start()
-                MusicPlayerManager.isPlaying = true
+                isPlaying = true
             }
         } ?: run {
             if (songList.isNotEmpty()) {
