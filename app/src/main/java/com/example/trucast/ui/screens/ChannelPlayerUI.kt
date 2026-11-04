@@ -41,32 +41,18 @@ object MusicRepository {
     fun getSongsForChannel(channelName: String): List<Song> {
         return when {
             channelName.contains("Wedding", true) -> listOf(
-                Song("Din Shagna Da", "Jasleen Royal", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Kabira", "Arijit Singh", "4:08", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Banno Tera Swagger", "Brijesh Shandilya", "3:30", R.drawable.pop, R.raw.chal_shadi_kar_lite, null),
-                Song("Navrai Majhi", "Sunidhi Chauhan", "3:52", R.drawable.indie, R.raw.sanson_ki_mala, null)
+                Song("Dulhe Ki Behen Brigade", "Wedding Beats", "3:45", R.drawable.bol, R.raw.dulhe_ki_behen_brigade),
+                Song("Chal Shadi Kar Lite", "Kurukshetra", "4:12", R.drawable.pop, R.raw.chal_shadi_kar_lite)
             )
             channelName.contains("Workout", true) || channelName.contains("Gym", true) -> listOf(
-                Song("Sultan Anthem", "Sukhwinder Singh", "4:20", R.drawable.u, R.raw.sanson_ki_mala, null),
-                Song("Apna Time Aayega", "DIVINE", "2:48", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
-                Song("Zinda", "Siddharth Mahadevan", "3:25", R.drawable.new_img, R.raw.chal_shadi_kar_lite, null)
+                Song("Sanson Ki Mala", "Workout Remix", "4:30", R.drawable.u, R.raw.sanson_ki_mala)
             )
             channelName.contains("Party", true) || channelName.contains("Club", true) -> listOf(
-                Song("Kar Gayi Chull", "Badshah, Neha Kakkar", "3:07", R.drawable.pop, R.raw.sajanva_mirzapur, null),
-                Song("Dil Chori", "Yo Yo Honey Singh", "3:40", R.drawable.charts, R.raw.dulhe_ki_behen_brigade, null),
-                Song("High Rated Gabru", "Guru Randhawa", "3:35", R.drawable.rnb, R.raw.chal_shadi_kar_lite, null)
-            )
-            channelName.contains("Chill", true) || channelName.contains("Relax", true) -> listOf(
-                Song("Channa Mereya (Lofi)", "Arijit Singh", "4:15", R.drawable.indie, R.raw.sanson_ki_mala, null),
-                Song("Raabta (Relaxing Mix)", "Arijit Singh", "3:50", R.drawable.maskgroup, R.raw.dulhe_ki_behen_brigade, null)
-            )
-            channelName.contains("Romantic", true) || channelName.contains("Romance", true) -> listOf(
-                Song("Kesariya", "Arijit Singh", "4:28", R.drawable.maskgroup, R.raw.chal_shadi_kar_lite, null),
-                Song("Raataan Lambiyan", "Jubin Nautiyal", "3:50", R.drawable.indie, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Sajanva", "Mirzapur", "3:08", R.drawable.pop, R.raw.sajanva_mirzapur)
             )
             else -> listOf(
-                Song("Global Top Hit 2025", "Top Artist", "3:30", R.drawable.charts, R.raw.sanson_ki_mala, null),
-                Song("Vibing Anthem", "Global Star", "3:15", R.drawable.pop, R.raw.dulhe_ki_behen_brigade, null)
+                Song("Sanson Ki Mala", "Mirzapur", "4:30", R.drawable.charts, R.raw.sanson_ki_mala),
+                Song("Dulhe Ki Behen Brigade", "Trucast Audio", "3:45", R.drawable.charts, R.raw.dulhe_ki_behen_brigade)
             )
         }
     }
@@ -97,8 +83,8 @@ fun ChannelPlayerUI(
     var sleepTimerActiveMinutes by remember { mutableStateOf<Int?>(null) }
 
     // Seekbar & Repeat States
-    var currentPosition by remember { mutableStateOf(0) }
-    var duration by remember { mutableStateOf(1) }
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(1L) }
     var isRepeatEnabled by remember { mutableStateOf(MusicPlayerManager.mediaPlayer?.isLooping ?: false) }
 
     val currentSong = songList[currentSongIndex % songList.size]
@@ -123,8 +109,8 @@ fun ChannelPlayerUI(
         while (isPlaying) {
             MusicPlayerManager.mediaPlayer?.let { player ->
                 try {
-                    currentPosition = player.currentPosition
-                    duration = player.duration.coerceAtLeast(1)
+                    currentPosition = player.currentPosition.toLong()
+                    duration = player.duration.toLong().coerceAtLeast(1L)
                     isPlaying = player.isPlaying
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -159,7 +145,7 @@ fun ChannelPlayerUI(
         MusicPlayerManager.mediaPlayer?.let { player ->
             val newPos = (player.currentPosition - 10000).coerceAtLeast(0)
             player.seekTo(newPos)
-            currentPosition = newPos
+            currentPosition = newPos.toLong()
         }
     }
 
@@ -168,7 +154,7 @@ fun ChannelPlayerUI(
         MusicPlayerManager.mediaPlayer?.let { player ->
             val newPos = (player.currentPosition + 10000).coerceAtMost(player.duration)
             player.seekTo(newPos)
-            currentPosition = newPos
+            currentPosition = newPos.toLong()
         }
     }
 
@@ -178,7 +164,7 @@ fun ChannelPlayerUI(
         MusicPlayerManager.mediaPlayer?.isLooping = isRepeatEnabled
     }
 
-    fun formatTime(ms: Int): String {
+    fun formatTime(ms: Long): String {
         val seconds = (ms / 1000) % 60
         val minutes = (ms / (1000 * 60)) % 60
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
@@ -303,7 +289,7 @@ fun ChannelPlayerUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist: ${currentSong.artist} | Real Vocal Song",
+                        text = "Artist: ${currentSong.artist} | Trucast Audio",
                         color = cyanColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -333,7 +319,7 @@ fun ChannelPlayerUI(
                 Slider(
                     value = currentPosition.toFloat(),
                     onValueChange = { newVal ->
-                        currentPosition = newVal.toInt()
+                        currentPosition = newVal.toLong()
                         MusicPlayerManager.mediaPlayer?.seekTo(newVal.toInt())
                     },
                     valueRange = 0f..duration.toFloat(),
@@ -458,7 +444,7 @@ fun ChannelPlayerUI(
                         .padding(24.dp)
                 ) {
                     Text(
-                        text = "$channelName Full Playlist (${songList.size} Songs)",
+                        text = "$channelName Playlist (${songList.size} Songs)",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -565,7 +551,7 @@ fun ChannelPlayerUI(
                             Surface(
                                 onClick = {
                                     MusicPlayerManager.mediaPlayer?.seekTo(lyric.timeMs)
-                                    currentPosition = lyric.timeMs
+                                    currentPosition = lyric.timeMs.toLong()
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isHighlighted) cyanColor.copy(0.12f) else Color.Transparent,

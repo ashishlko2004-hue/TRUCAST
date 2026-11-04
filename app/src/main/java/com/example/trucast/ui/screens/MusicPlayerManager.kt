@@ -19,19 +19,12 @@ data class Song(
 object MusicPlayerManager {
     var currentChannel by mutableStateOf("Wedding")
     var currentSongTitle by mutableStateOf("Dulhe Ki Behen Brigade")
-    var currentArtist by mutableStateOf("Wedding Vocals")
+    var currentArtist by mutableStateOf("Wedding Beats")
     var currentCoverRes by mutableStateOf(R.drawable.bol)
     var isPlaying by mutableStateOf(false)
-
     var mediaPlayer: MediaPlayer? = null
     var songList: List<Song> = listOf()
     var currentIndex by mutableStateOf(0)
-
-    val currentPosition: Long
-        get() = mediaPlayer?.currentPosition?.toLong() ?: 0L
-
-    val duration: Long
-        get() = mediaPlayer?.duration?.toLong()?.coerceAtLeast(1L) ?: 1L
 
     fun playSong(context: Context, song: Song, channel: String, list: List<Song>, index: Int) {
         currentChannel = channel
