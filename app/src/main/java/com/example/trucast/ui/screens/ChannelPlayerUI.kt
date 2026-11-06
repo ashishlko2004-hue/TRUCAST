@@ -90,6 +90,29 @@ fun ChannelPlayerUI(
     val currentSong = songList[currentSongIndex % songList.size]
     val isLiked = FavoriteManager.isLiked(currentSong.title)
 
+    // Dynamic Color Extraction
+    var dynamicBackgroundColor by remember { mutableStateOf(Color(0xFF003D4D)) }
+    var dynamicAccentColor by remember { mutableStateOf(Color(0xFF00BCD4)) }
+
+    LaunchedEffect(currentSong.coverRes) {
+        val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, currentSong.coverRes)
+        if (bitmap != null) {
+            androidx.palette.graphics.Palette.from(bitmap).generate { palette ->
+                palette?.darkVibrantSwatch?.let { swatch ->
+                    dynamicBackgroundColor = Color(swatch.rgb)
+                } ?: palette?.darkMutedSwatch?.let { swatch ->
+                    dynamicBackgroundColor = Color(swatch.rgb)
+                }
+
+                palette?.lightVibrantSwatch?.let { swatch ->
+                    dynamicAccentColor = Color(swatch.rgb)
+                } ?: palette?.vibrantSwatch?.let { swatch ->
+                    dynamicAccentColor = Color(swatch.rgb)
+                }
+            }
+        }
+    }
+
     fun startPlaying(song: Song) {
         MusicPlayerManager.playSong(context, song, channelName, songList, currentSongIndex)
         isPlaying = true
@@ -198,7 +221,7 @@ fun ChannelPlayerUI(
             contentScale = ContentScale.FillBounds
         )
         Box(modifier = Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color.Black.copy(0.4f), Color.Black.copy(0.92f)))
+            Brush.verticalGradient(listOf(dynamicBackgroundColor.copy(0.75f), Color.Black.copy(0.95f)))
         ))
 
         Column(
@@ -220,7 +243,7 @@ fun ChannelPlayerUI(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(text = "Playing Category", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-                    Text(text = channelName, color = cyanColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(text = channelName, color = dynamicAccentColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -245,13 +268,13 @@ fun ChannelPlayerUI(
                 modifier = Modifier.size(230.dp),
                 shape = RoundedCornerShape(115.dp),
                 color = Color.White.copy(alpha = 0.05f),
-                border = BorderStroke(1.5.dp, cyanColor.copy(alpha = 0.4f)),
+                border = BorderStroke(1.5.dp, dynamicAccentColor.copy(alpha = 0.4f)),
                 shadowElevation = 12.dp
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         drawArc(
-                            brush = Brush.sweepGradient(listOf(cyanColor, Color.Magenta, cyanColor)),
+                            brush = Brush.sweepGradient(listOf(dynamicAccentColor, Color.Magenta, dynamicAccentColor)),
                             startAngle = if (isPlaying) rotation else 0f,
                             sweepAngle = 280f,
                             useCenter = false,
@@ -290,7 +313,7 @@ fun ChannelPlayerUI(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Artist: ${currentSong.artist} | Trucast Audio",
-                        color = cyanColor,
+                        color = dynamicAccentColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1
@@ -324,8 +347,8 @@ fun ChannelPlayerUI(
                     },
                     valueRange = 0f..duration.toFloat(),
                     colors = SliderDefaults.colors(
-                        thumbColor = cyanColor,
-                        activeTrackColor = cyanColor,
+                        thumbColor = dynamicAccentColor,
+                        activeTrackColor = dynamicAccentColor,
                         inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                     ),
                     modifier = Modifier.height(24.dp)
@@ -351,7 +374,7 @@ fun ChannelPlayerUI(
                     Icon(
                         imageVector = Icons.Default.Repeat,
                         contentDescription = "Repeat",
-                        tint = if (isRepeatEnabled) cyanColor else Color.White.copy(alpha = 0.6f),
+                        tint = if (isRepeatEnabled) dynamicAccentColor else Color.White.copy(alpha = 0.6f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -368,7 +391,7 @@ fun ChannelPlayerUI(
                     onClick = togglePlayPause,
                     modifier = Modifier.size(68.dp).scale(if (isPlaying) pulseScale else 1f),
                     shape = CircleShape,
-                    color = cyanColor,
+                    color = dynamicAccentColor,
                     border = BorderStroke(2.dp, Color.White),
                     shadowElevation = 8.dp
                 ) {
@@ -464,7 +487,7 @@ fun ChannelPlayerUI(
                                     startPlaying(song)
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (index == currentSongIndex) cyanColor.copy(0.15f) else Color.Transparent,
+                                color = if (index == currentSongIndex) dynamicAccentColor.copy(0.15f) else Color.Transparent,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
@@ -484,7 +507,7 @@ fun ChannelPlayerUI(
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = song.title,
-                                                color = if (index == currentSongIndex) cyanColor else Color.White,
+                                                color = if (index == currentSongIndex) dynamicAccentColor else Color.White,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 15.sp
                                             )
@@ -500,7 +523,7 @@ fun ChannelPlayerUI(
                                         )
                                     }
                                     if (index == currentSongIndex && isPlaying) {
-                                        Icon(Icons.Default.VolumeUp, null, tint = cyanColor)
+                                        Icon(Icons.Default.VolumeUp, null, tint = dynamicAccentColor)
                                     }
                                 }
                             }
@@ -554,12 +577,12 @@ fun ChannelPlayerUI(
                                     currentPosition = lyric.timeMs.toLong()
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isHighlighted) cyanColor.copy(0.12f) else Color.Transparent,
+                                color = if (isHighlighted) dynamicAccentColor.copy(0.12f) else Color.Transparent,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = lyric.text,
-                                    color = if (isHighlighted) cyanColor else Color.White.copy(0.5f),
+                                    color = if (isHighlighted) dynamicAccentColor else Color.White.copy(0.5f),
                                     fontSize = if (isHighlighted) 17.sp else 14.sp,
                                     fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.Normal,
                                     textAlign = TextAlign.Center,
@@ -580,13 +603,13 @@ fun ChannelPlayerUI(
                     modifier = Modifier.fillMaxWidth(0.85f).wrapContentHeight(),
                     shape = RoundedCornerShape(24.dp),
                     color = Color(0xFF1A1A1A),
-                    border = BorderStroke(1.dp, cyanColor.copy(0.5f))
+                    border = BorderStroke(1.dp, dynamicAccentColor.copy(0.5f))
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Default.Timer, null, tint = cyanColor, modifier = Modifier.size(40.dp))
+                        Icon(Icons.Default.Timer, null, tint = dynamicAccentColor, modifier = Modifier.size(40.dp))
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Sleep Timer", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -603,7 +626,7 @@ fun ChannelPlayerUI(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                border = BorderStroke(1.dp, if (sleepTimerActiveMinutes == mins) cyanColor else Color.White.copy(0.3f))
+                                border = BorderStroke(1.dp, if (sleepTimerActiveMinutes == mins) dynamicAccentColor else Color.White.copy(0.3f))
                             ) {
                                 Text("$mins Minutes", fontWeight = FontWeight.Bold)
                             }

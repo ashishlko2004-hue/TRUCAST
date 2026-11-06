@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Palette API for dynamic color extraction from album art
+    implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
