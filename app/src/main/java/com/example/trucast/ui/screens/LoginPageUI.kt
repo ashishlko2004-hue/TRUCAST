@@ -58,9 +58,13 @@ fun LoginPageUI(
     onBackClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var rememberMe by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("TrucastPrefs", android.content.Context.MODE_PRIVATE) }
+    
+    // Auto-fill from SharedPreferences
+    var email by remember { mutableStateOf(sharedPrefs.getString("saved_email", "") ?: "") }
+    var password by remember { mutableStateOf(sharedPrefs.getString("saved_password", "") ?: "") }
+    var rememberMe by remember { mutableStateOf(email.isNotEmpty()) }
     var passwordVisible by remember { mutableStateOf(false) }
 
     var showErrors by remember { mutableStateOf(false) }
@@ -108,6 +112,17 @@ fun LoginPageUI(
                     .addOnCompleteListener { task ->
                         isLoading = false
                         if (task.isSuccessful) {
+                            // Save credentials successfully after login
+                            sharedPrefs.edit().apply {
+                                if (rememberMe) {
+                                    putString("saved_email", email.trim())
+                                    putString("saved_password", password)
+                                } else {
+                                    remove("saved_email")
+                                    remove("saved_password")
+                                }
+                                apply()
+                            }
                             onLoginClick()
                         } else {
                             val exception = task.exception
@@ -244,7 +259,7 @@ fun LoginPageUI(
 
             Spacer(modifier = Modifier.weight(0.5f))
             Text(
-                "Welcome Back",
+                "Welcome Back", 
                 color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
