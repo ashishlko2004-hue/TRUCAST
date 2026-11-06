@@ -33,6 +33,5 @@ fun SplashScreenUI(onTimeout: (Boolean) -> Unit) {
         val currentUser = FirebaseAuth.getInstance().currentUser
         onTimeout(currentUser != null)
 
-
     }
 }
