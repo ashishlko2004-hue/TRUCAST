@@ -243,12 +243,12 @@ fun ChannelsUI(
                                 shape = RoundedCornerShape(8.dp),
                                 color = cyanColor.copy(0.25f)
                             ) {
-                                Text("FEATURED VIBE", color = cyanColor, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                Text("TRUCAST EXCLUSIVE", color = cyanColor, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("TRUCAST Summer 2025", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("Top Global Hits", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text("Top streaming tracks & party anthems", color = Color.White.copy(0.7f), fontSize = 11.sp, maxLines = 1)
+                            Text("The most streamed tracks worldwide", color = Color.White.copy(0.7f), fontSize = 11.sp, maxLines = 1)
                         }
                         Surface(
                             modifier = Modifier.align(Alignment.CenterEnd).size(50.dp),
